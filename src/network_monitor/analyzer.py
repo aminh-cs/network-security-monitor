@@ -17,6 +17,7 @@ def analyze_pcap(file_path: str | Path) -> dict:
     protocol_counts = Counter()
     source_ips = Counter()
     destination_ips = Counter()
+    timestamped_sources = []
 
     for packet in packets:
         if TCP in packet:
@@ -29,18 +30,25 @@ def analyze_pcap(file_path: str | Path) -> dict:
             protocol_counts["OTHER"] += 1
 
         if IP in packet:
-            source_ips[packet[IP].src] += 1
-            destination_ips[packet[IP].dst] += 1
+            source_ip = packet[IP].src
+            destination_ip = packet[IP].dst
         elif IPv6 in packet:
-            source_ips[packet[IPv6].src] += 1
-            destination_ips[packet[IPv6].dst] += 1
+            source_ip = packet[IPv6].src
+            destination_ip = packet[IPv6].dst
+        else:
+            continue
+
+        source_ips[source_ip] += 1
+        destination_ips[destination_ip] += 1
+        timestamped_sources.append((float(packet.time), source_ip))
 
     return {
-    "file": path.name,
-    "total_packets": len(packets),
-    "protocol_counts": dict(sorted(protocol_counts.items())),
-    "unique_source_ips": len(source_ips),
-    "unique_destination_ips": len(destination_ips),
-    "top_source_ips": source_ips.most_common(5),
-    "source_packet_counts": dict(sorted(source_ips.items())),
-}
+        "file": path.name,
+        "total_packets": len(packets),
+        "protocol_counts": dict(sorted(protocol_counts.items())),
+        "unique_source_ips": len(source_ips),
+        "unique_destination_ips": len(destination_ips),
+        "top_source_ips": source_ips.most_common(5),
+        "source_packet_counts": dict(sorted(source_ips.items())),
+        "timestamped_sources": timestamped_sources,
+    }

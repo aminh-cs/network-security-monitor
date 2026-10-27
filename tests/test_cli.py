@@ -28,3 +28,37 @@ def test_cli_reports_high_packet_source(tmp_path, monkeypatch, capsys):
     assert len(output["alerts"]) == 1
     assert output["alerts"][0]["source_ip"] == "192.168.1.10"
     assert output["alerts"][0]["packet_count"] == 3
+
+
+def test_cli_reports_packet_burst(tmp_path, monkeypatch, capsys):
+    packets = [
+        Ether() / IP(src="192.168.1.10", dst="192.168.1.20")
+        / TCP(sport=12345 + index, dport=443)
+        for index in range(3)
+    ]
+
+    for index, packet in enumerate(packets):
+        packet.time = 100.0 + index
+
+    pcap_path = tmp_path / "burst.pcap"
+    wrpcap(str(pcap_path), packets)
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "network-monitor",
+            str(pcap_path),
+            "--window-seconds",
+            "5",
+            "--burst-threshold",
+            "3",
+        ],
+    )
+
+    exit_code = main()
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert len(output["burst_alerts"]) == 1
+    assert output["burst_alerts"][0]["source_ip"] == "192.168.1.10"
+    assert output["burst_alerts"][0]["packet_count"] == 3

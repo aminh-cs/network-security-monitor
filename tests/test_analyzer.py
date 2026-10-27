@@ -81,3 +81,26 @@ def test_analyze_packet_without_ip(tmp_path):
     assert result["protocol_counts"] == {"OTHER": 1}
     assert result["unique_source_ips"] == 0
     assert result["unique_destination_ips"] == 0
+
+
+def test_analyzer_includes_packet_timestamps(tmp_path):
+    packets = [
+        Ether() / IP(src="192.168.1.10", dst="192.168.1.20")
+        / TCP(sport=12345, dport=443),
+        Ether() / IP(src="192.168.1.10", dst="192.168.1.20")
+        / TCP(sport=12346, dport=443),
+    ]
+
+    # Set deterministic capture timestamps.
+    packets[0].time = 100.0
+    packets[1].time = 102.0
+
+    pcap_path = tmp_path / "timestamped.pcap"
+    wrpcap(str(pcap_path), packets)
+
+    result = analyze_pcap(pcap_path)
+
+    assert result["timestamped_sources"] == [
+        (100.0, "192.168.1.10"),
+        (102.0, "192.168.1.10"),
+    ]
