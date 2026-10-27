@@ -44,6 +44,34 @@ python -m pip install -r requirements.txt
 python -m pip install -e . --no-build-isolation
 ```
 
+## Synthetic Demo
+
+This repository includes a small, reproducible PCAP capture generated entirely from synthetic packets. It uses documentation-only IP addresses and does not contain traffic captured from a real network.
+
+Generate or regenerate the demo:
+
+```powershell
+python scripts\generate_demo_pcap.py
+```
+
+Analyze the sample with a five-second rolling window and a burst threshold of five packets:
+
+```powershell
+python -m network_monitor samples\demo.pcap --window-seconds 5 --burst-threshold 5
+```
+
+Expected behavior: the report contains a `PACKET_BURST` alert for `192.0.2.10`, with a peak count of five packets.
+
+Raise the threshold to six:
+
+```powershell
+python -m network_monitor samples\demo.pcap --window-seconds 5 --burst-threshold 6
+```
+
+Expected behavior: no burst alert is generated, because the source's peak count within the five-second window is five.
+
+The capture is synthetic test data. These alerts demonstrate the detection rule and are not evidence of malicious activity.
+
 ## Usage
 
 Show available options:
